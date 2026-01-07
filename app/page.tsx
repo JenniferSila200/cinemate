@@ -1,6 +1,7 @@
 'use client'
 import { DM_Mono } from 'next/font/google'
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 
 const dmMono = DM_Mono({
@@ -10,7 +11,6 @@ const dmMono = DM_Mono({
 
 type Tab = 'films' | 'friends'
 type HomeTab = 'feed' | 'picker'
-
 
 type MovieRow = { id: string; title: string; year: number | null; director: string | null }
 type FriendRow = { id: string; label: string }
@@ -30,13 +30,13 @@ function formatSupabaseError(error: unknown) {
   return parts.length ? parts.join(' • ') : 'Unknown error'
 }
 
-/** Hard-coded “Most popular” list (for Search screen) */
+/** “Most popular” list (titles must exist in your movies table) */
 const MOST_POPULAR = [
-  { id: 'p1', title: 'Saltburn', year: '2023', director: 'Emerald Fennell' },
-  { id: 'p2', title: 'La La Land', year: '2016', director: 'Damien Chazelle' },
-  { id: 'p3', title: 'Poor Things', year: '2023', director: 'Yorgos Lanthimos' },
-  { id: 'p4', title: 'Past Lives', year: '2023', director: 'Celine Song' },
-  { id: 'p5', title: 'Challengers', year: '2024', director: 'Luca Guadagnino' },
+  { title: 'Saltburn', year: '2023', director: 'Emerald Fennell' },
+  { title: 'La La Land', year: '2016', director: 'Damien Chazelle' },
+  { title: 'Poor Things', year: '2023', director: 'Yorgos Lanthimos' },
+  { title: 'Past Lives', year: '2023', director: 'Celine Song' },
+  { title: 'Challengers', year: '2024', director: 'Luca Guadagnino' },
 ] as const
 
 /** Hard-coded list for the spin the wheel */
@@ -53,13 +53,8 @@ const PICKER_MOVIES = [
   'Home Alone',
 ] as const
 
-
 async function searchMovies(q: string) {
-  const { data, error } = await supabase
-    .from('movies')
-    .select('id,title,year,director')
-    .ilike('title', `%${q}%`)
-    .limit(8)
+  const { data, error } = await supabase.from('movies').select('id,title,year,director').ilike('title', `%${q}%`).limit(8)
 
   return { data: (data ?? []) as MovieRow[], error }
 }
@@ -88,6 +83,13 @@ async function searchFriends(q: string) {
   return { data: [] as FriendRow[], error: lastError }
 }
 
+/** ✅ Helper: get real movie id by title (used for Most popular list) */
+async function getMovieIdByTitle(title: string) {
+  const { data, error } = await supabase.from('movies').select('id').eq('title', title).limit(1).maybeSingle()
+  if (error) return { id: null as string | null, error }
+  return { id: data?.id ? String(data.id) : null, error: null }
+}
+
 export default function Page() {
   const [searchOpen, setSearchOpen] = useState(false)
 
@@ -100,25 +102,21 @@ export default function Page() {
         {/* Bottom navbar */}
         <div className="absolute bottom-0 left-0 right-0 z-30 bg-[#141414] border-t border-white/10">
           <div className="h-20 px-10 flex items-center justify-between">
-            <button
-  className="text-white/80 grid place-items-center"
-  aria-label="Home"
->
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="h-7 w-7"
-  >
-    <path d="M3 10.5L12 3l9 7.5" />
-    <path d="M5 9.5V21a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
-  </svg>
-</button>
-
+            <button className="text-white/80 grid place-items-center" aria-label="Home">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-7 w-7"
+              >
+                <path d="M3 10.5L12 3l9 7.5" />
+                <path d="M5 9.5V21a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
+              </svg>
+            </button>
 
             <button
               className="h-10 w-16 rounded-full bg-[#141414] border border-white text-white text-2xl grid place-items-center"
@@ -127,23 +125,12 @@ export default function Page() {
               +
             </button>
 
-            <button
-  className="text-white/80 grid place-items-center"
-  aria-label="Profile"
->
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    className="h-7 w-7"
-  >
-    <path d="M20 21a8 8 0 0 0-16 0" />
-    <circle cx="12" cy="8" r="4" />
-  </svg>
-</button>
-
+            <button className="text-white/80 grid place-items-center" aria-label="Profile">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7">
+                <path d="M20 21a8 8 0 0 0-16 0" />
+                <circle cx="12" cy="8" r="4" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -213,17 +200,14 @@ function FeedTab() {
     <div className="bg-[#4b0f0f] h-full px-5 pt-6 pb-28 text-white">
       <h2 className="text-sm tracking-widest mb-4">Your recommendations</h2>
 
-      {/* Your recommendations */}
       <div className="flex gap-4 overflow-x-auto overflow-y-visible pb-6 pt-4 pl-2 pr-2">
         {Array.from({ length: 4 }).map((_, i) => {
           const rot = i % 2 === 0 ? '-rotate-2' : 'rotate-2'
           const y = i % 2 === 0 ? 'translate-y-1' : '-translate-y-1'
-
           return <div key={i} className={['h-28 w-20 shrink-0 rounded-xl bg-white/10 border border-white', 'transform', rot, y].join(' ')} />
         })}
       </div>
 
-      {/* This week’s mood */}
       <div
         className="mt-6 -mx-5 relative h-24 overflow-hidden bg-repeat-x"
         style={{
@@ -241,12 +225,10 @@ function FeedTab() {
 
       <h2 className="mt-8 text-sm tracking-widest mb-4">Friend’s recommendations</h2>
 
-      {/* Friend recommendations */}
       <div className="flex gap-4 overflow-x-auto overflow-y-visible pb-6 pt-4 pl-2 pr-2">
         {Array.from({ length: 4 }).map((_, i) => {
           const rot = i % 2 === 0 ? '-rotate-2' : 'rotate-2'
           const y = i % 2 === 0 ? 'translate-y-1' : '-translate-y-1'
-
           return <div key={i} className={['h-28 w-20 shrink-0 rounded-xl bg-white/10 border border-white', 'transform', rot, y].join(' ')} />
         })}
       </div>
@@ -341,6 +323,8 @@ function PickerTab() {
 }
 
 function SearchScreen({ onClose }: { onClose: () => void }) {
+  const router = useRouter() // ✅ added
+
   const [tab, setTab] = useState<Tab>('films')
   const [query, setQuery] = useState('')
   const debounced = useDebounced(query, 250)
@@ -436,17 +420,12 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      <div
-        className="px-5 pt-4 pb-28 flex-1 min-h-0 overflow-y-auto bg-[#4b0f0f]"
-        style={{ borderTopLeftRadius: '0.9375rem', borderTopRightRadius: '0.9375rem' }}
-      >
+      <div className="px-5 pt-4 pb-28 flex-1 min-h-0 overflow-y-auto bg-[#4b0f0f]" style={{ borderTopLeftRadius: '0.9375rem', borderTopRightRadius: '0.9375rem' }}>
         <div className="flex gap-4">
           <button
             onClick={() => setTab('films')}
             className={
-              tab === 'films'
-                ? 'px-5 py-2 rounded-full bg-black/55 text-white text-sm tracking-wide'
-                : 'px-5 py-2 rounded-full bg-transparent text-white/80 text-sm tracking-wide'
+              tab === 'films' ? 'px-5 py-2 rounded-full bg-black/55 text-white text-sm tracking-wide' : 'px-5 py-2 rounded-full bg-transparent text-white/80 text-sm tracking-wide'
             }
           >
             FILMS
@@ -455,9 +434,7 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
           <button
             onClick={() => setTab('friends')}
             className={
-              tab === 'friends'
-                ? 'px-5 py-2 rounded-full bg-black/55 text-white text-sm tracking-wide'
-                : 'px-5 py-2 rounded-full bg-transparent text-white/80 text-sm tracking-wide'
+              tab === 'friends' ? 'px-5 py-2 rounded-full bg-black/55 text-white text-sm tracking-wide' : 'px-5 py-2 rounded-full bg-transparent text-white/80 text-sm tracking-wide'
             }
           >
             FRIENDS
@@ -467,9 +444,7 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
         <div className="mt-6 text-white text-xl tracking-widest">{tab === 'films' ? 'Most popular' : 'People'}</div>
         <div className="mt-4 h-px bg-white/40" />
 
-        {errorMsg && (
-          <div className="mt-4 rounded-xl border border-white/20 bg-black/20 p-3 text-red-200 text-sm">{errorMsg}</div>
-        )}
+        {errorMsg && <div className="mt-4 rounded-xl border border-white/20 bg-black/20 p-3 text-red-200 text-sm">{errorMsg}</div>}
 
         <div className="mt-4">
           {tab === 'films' && isEmpty && (
@@ -478,7 +453,7 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
                 const rot = i % 2 === 0 ? '-rotate-2' : 'rotate-2'
                 const y = i % 2 === 0 ? 'translate-y-1' : '-translate-y-1'
                 return (
-                  <li key={m.id} className="border-b border-white/40 py-6 text-sm">
+                  <li key={m.title} className="border-b border-white/40 py-6 text-sm">
                     <div className="flex items-center gap-4">
                       <div className={['h-20 w-14 rounded-lg bg-white/10 border border-white/20 grid place-items-center', 'transform', rot, y].join(' ')}>
                         🎬
@@ -492,7 +467,16 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
                         <div className="text-white/90 font-normal">{m.director}</div>
                       </div>
 
-                      <button className="px-5 py-2 rounded-full bg-black/60 text-white text-xs tracking-widest">MORE</button>
+                      {/* ✅ Most popular MORE: lookup real id by title, then navigate */}
+                      <button
+                        onClick={async () => {
+                          const { id } = await getMovieIdByTitle(m.title)
+                          if (id) router.push(`/movie/${id}`)
+                        }}
+                        className="px-5 py-2 rounded-full bg-black/60 text-white text-xs tracking-widest"
+                      >
+                        MORE
+                      </button>
                     </div>
                   </li>
                 )
@@ -500,7 +484,6 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
             </ul>
           )}
 
-          {/* ✅ UPDATED: show year + director for searched movies too */}
           {tab === 'films' && !isEmpty && (
             <ul>
               {loading && <li className="text-white/70 py-4">Searching…</li>}
@@ -526,7 +509,13 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
                         {m.director ? <div className="text-white/90 font-normal">{m.director}</div> : null}
                       </div>
 
-                      <button className="px-5 py-2 rounded-full bg-black/60 text-white text-xs tracking-widest">MORE</button>
+                      {/* ✅ Searched movies MORE: navigate directly */}
+                      <button
+                        onClick={() => router.push(`/movie/${m.id}`)}
+                        className="px-5 py-2 rounded-full bg-black/60 text-white text-xs tracking-widest"
+                      >
+                        MORE
+                      </button>
                     </div>
                   </li>
                 )
