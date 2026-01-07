@@ -1,12 +1,18 @@
 'use client'
-
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { DM_Mono } from 'next/font/google'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+
+const dmMono = DM_Mono({
+  weight: ['300', '400', '500'],
+  subsets: ['latin'],
+})
 
 type Tab = 'films' | 'friends'
 type HomeTab = 'feed' | 'picker'
 
-type MovieRow = { id: string; title: string }
+
+type MovieRow = { id: string; title: string; year: number | null; director: string | null }
 type FriendRow = { id: string; label: string }
 
 function useDebounced<T>(value: T, delay = 250) {
@@ -33,7 +39,7 @@ const MOST_POPULAR = [
   { id: 'p5', title: 'Challengers', year: '2024', director: 'Luca Guadagnino' },
 ] as const
 
-/** Hard-coded list for the PICKER wheel */
+/** Hard-coded list for the spin the wheel */
 const PICKER_MOVIES = [
   'Saltburn',
   'La La Land',
@@ -47,10 +53,11 @@ const PICKER_MOVIES = [
   'Home Alone',
 ] as const
 
+
 async function searchMovies(q: string) {
   const { data, error } = await supabase
     .from('movies')
-    .select('id,title')
+    .select('id,title,year,director')
     .ilike('title', `%${q}%`)
     .limit(8)
 
@@ -65,11 +72,7 @@ async function searchFriends(q: string) {
 
   for (const table of tables) {
     for (const col of cols) {
-      const { data, error } = await supabase
-        .from(table)
-        .select(`id,label:${col}`)
-        .ilike(col, `%${q}%`)
-        .limit(8)
+      const { data, error } = await supabase.from(table).select(`id,label:${col}`).ilike(col, `%${q}%`).limit(8)
 
       if (!error) {
         const friends = (data ?? [])
@@ -89,32 +92,58 @@ export default function Page() {
   const [searchOpen, setSearchOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-6">
+    <div className={`${dmMono.className} min-h-screen bg-black flex items-center justify-center p-6`}>
       {/* Phone frame */}
       <div className="relative h-[844px] w-[390px] overflow-hidden rounded-[44px] border border-white/10 bg-[#141414] shadow-[0_24px_80px_rgba(0,0,0,0.6)]">
-        {!searchOpen ? (
-          <HomeScreen onOpenSearch={() => setSearchOpen(true)} />
-        ) : (
-          <SearchScreen onClose={() => setSearchOpen(false)} />
-        )}
+        {!searchOpen ? <HomeScreen onOpenSearch={() => setSearchOpen(true)} /> : <SearchScreen onClose={() => setSearchOpen(false)} />}
 
-        {/* Bottom navbar*/}
+        {/* Bottom navbar */}
         <div className="absolute bottom-0 left-0 right-0 z-30 bg-[#141414] border-t border-white/10">
           <div className="h-20 px-10 flex items-center justify-between">
-            <button className="text-white/80 text-2xl" aria-label="Home">
-              ⌂
-            </button>
+            <button
+  className="text-white/80 grid place-items-center"
+  aria-label="Home"
+>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-7 w-7"
+  >
+    <path d="M3 10.5L12 3l9 7.5" />
+    <path d="M5 9.5V21a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" />
+  </svg>
+</button>
+
 
             <button
-              className="h-14 w-14 rounded-full bg-black/60 border border-white/20 text-white text-2xl grid place-items-center"
+              className="h-10 w-16 rounded-full bg-[#141414] border border-white text-white text-2xl grid place-items-center"
               aria-label="Add"
             >
               +
             </button>
 
-            <button className="text-white/80 text-2xl" aria-label="Profile">
-              👤
-            </button>
+            <button
+  className="text-white/80 grid place-items-center"
+  aria-label="Profile"
+>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    className="h-7 w-7"
+  >
+    <path d="M20 21a8 8 0 0 0-16 0" />
+    <circle cx="12" cy="8" r="4" />
+  </svg>
+</button>
+
           </div>
         </div>
       </div>
@@ -130,18 +159,17 @@ function HomeScreen({ onOpenSearch }: { onOpenSearch: () => void }) {
       {/* Header */}
       <div className="px-5 pt-10 pb-4 bg-gradient-to-b from-[#1b1b1b] to-[#141414]">
         <div className="flex items-center justify-center gap-2">
-          <span className="text-white/90">☆</span>
-          <h1 className="text-white text-3xl tracking-widest font-semibold">Cinemate</h1>
-          <span className="text-white/90">☆</span>
+          <span className="text-white/90 text-2xl">☆</span>
+          <span className="text-white/90 text-2xl">☆</span>
+          <h1 className="text-white text-2xl tracking-widest font-normal">Cinemate</h1>
+          <span className="text-white/90 text-2xl">☆</span>
+          <span className="text-white/90 text-2xl">☆</span>
         </div>
 
         {/* Search bar that opens search screen */}
-        <button
-          onClick={onOpenSearch}
-          className="mt-4 w-full flex items-center gap-3 bg-white rounded-full px-4 py-3"
-        >
-          <span className="text-black/50">⌕</span>
-          <span className="text-[15px] text-black/45">Find films or friends…</span>
+        <button onClick={onOpenSearch} className="mt-4 w-full flex items-center gap-3 bg-white rounded-full px-4 py-2 mb-2">
+          <span className="text-black/50 text-2xl">⌕</span>
+          <span className="text-[13px] text-black/45">Find films or friends…</span>
         </button>
       </div>
 
@@ -152,8 +180,8 @@ function HomeScreen({ onOpenSearch }: { onOpenSearch: () => void }) {
             onClick={() => setHomeTab('feed')}
             className={
               homeTab === 'feed'
-                ? 'px-6 py-3 rounded-t-2xl bg-[#4b0f0f] text-white text-sm tracking-widest shadow'
-                : 'px-6 py-3 rounded-t-2xl bg-[#2a0808] text-white/80 text-sm tracking-widest'
+                ? 'px-6 py-2 rounded-t-2xl bg-[#4b0f0f] text-white text-sm tracking-widest shadow'
+                : 'px-6 py-2 rounded-t-2xl bg-[#2a0808] text-white/80 text-sm tracking-widest'
             }
           >
             FEED
@@ -163,8 +191,8 @@ function HomeScreen({ onOpenSearch }: { onOpenSearch: () => void }) {
             onClick={() => setHomeTab('picker')}
             className={
               homeTab === 'picker'
-                ? 'px-6 py-3 rounded-t-2xl bg-[#4b0f0f] text-white text-sm tracking-widest shadow'
-                : 'px-6 py-3 rounded-t-2xl bg-[#2a0808] text-white/80 text-sm tracking-widest'
+                ? 'px-6 py-2 rounded-t-2xl bg-[#4b0f0f] text-white text-sm tracking-widest shadow'
+                : 'px-6 py-2 rounded-t-2xl bg-[#2a0808] text-white/80 text-sm tracking-widest'
             }
           >
             PICKER
@@ -175,9 +203,7 @@ function HomeScreen({ onOpenSearch }: { onOpenSearch: () => void }) {
       </div>
 
       {/* Tabs */}
-      <div className="h-[calc(844px- (10rem))]">
-        {homeTab === 'feed' ? <FeedTab /> : <PickerTab />}
-      </div>
+      <div className="h-[calc(844px-(10rem))]">{homeTab === 'feed' ? <FeedTab /> : <PickerTab />}</div>
     </div>
   )
 }
@@ -185,31 +211,44 @@ function HomeScreen({ onOpenSearch }: { onOpenSearch: () => void }) {
 function FeedTab() {
   return (
     <div className="bg-[#4b0f0f] h-full px-5 pt-6 pb-28 text-white">
-      <h2 className="text-xl tracking-widest mb-4">Your recommendations</h2>
+      <h2 className="text-sm tracking-widest mb-4">Your recommendations</h2>
 
-      <div className="flex gap-4 overflow-x-auto pb-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-36 w-24 shrink-0 rounded-2xl bg-white/10 border border-white/10"
-          />
-        ))}
+      {/* Your recommendations */}
+      <div className="flex gap-4 overflow-x-auto overflow-y-visible pb-6 pt-4 pl-2 pr-2">
+        {Array.from({ length: 4 }).map((_, i) => {
+          const rot = i % 2 === 0 ? '-rotate-2' : 'rotate-2'
+          const y = i % 2 === 0 ? 'translate-y-1' : '-translate-y-1'
+
+          return <div key={i} className={['h-28 w-20 shrink-0 rounded-xl bg-white/10 border border-white', 'transform', rot, y].join(' ')} />
+        })}
       </div>
 
-      <div className="mt-6 rounded-2xl bg-black/15 border border-white/15 p-4">
-        <div className="text-white/70 text-sm">This week’s mood</div>
-        <div className="text-white text-lg font-semibold">Ugly cry night 😭</div>
+      {/* This week’s mood */}
+      <div
+        className="mt-6 -mx-5 relative h-24 overflow-hidden bg-repeat-x"
+        style={{
+          backgroundImage: "url('/filmroll.jpg')",
+          backgroundRepeat: 'repeat-x',
+          backgroundPosition: 'left center',
+          backgroundSize: 'auto 100%',
+        }}
+      >
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-10">
+          <div className="text-black text-sm tracking-widest uppercase">This week’s mood</div>
+          <div className="text-black text-xs font-normal mt-1 italic">Ugly cry night 😭</div>
+        </div>
       </div>
 
-      <h2 className="mt-8 text-xl tracking-widest mb-4">Friend’s recommendations</h2>
+      <h2 className="mt-8 text-sm tracking-widest mb-4">Friend’s recommendations</h2>
 
-      <div className="flex gap-4 overflow-x-auto">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-36 w-24 shrink-0 rounded-2xl bg-white/10 border border-white/10"
-          />
-        ))}
+      {/* Friend recommendations */}
+      <div className="flex gap-4 overflow-x-auto overflow-y-visible pb-6 pt-4 pl-2 pr-2">
+        {Array.from({ length: 4 }).map((_, i) => {
+          const rot = i % 2 === 0 ? '-rotate-2' : 'rotate-2'
+          const y = i % 2 === 0 ? 'translate-y-1' : '-translate-y-1'
+
+          return <div key={i} className={['h-28 w-20 shrink-0 rounded-xl bg-white/10 border border-white', 'transform', rot, y].join(' ')} />
+        })}
       </div>
     </div>
   )
@@ -224,12 +263,11 @@ function PickerTab() {
   const listRef = useRef<HTMLDivElement | null>(null)
   const [selectedIndex, setSelectedIndex] = useState(0)
 
-
   useEffect(() => {
     const el = listRef.current
     if (!el) return
     el.scrollTop = selectedIndex * ITEM_H
-   
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -264,34 +302,12 @@ function PickerTab() {
     <div className="bg-[#4b0f0f] h-full px-5 pt-6 pb-28 text-white">
       <h2 className="text-xl tracking-widest mb-4">Movie picker</h2>
 
-      
       <div className="relative mx-auto w-full max-w-[320px]">
-        <div
-          className="rounded-2xl border border-white/15 bg-black/15 overflow-hidden"
-          style={{ height: containerH }}
-        >
-          <div
-            ref={listRef}
-            className="h-full overflow-y-scroll snap-y snap-mandatory scrollbar-none"
-            style={{
-              paddingTop: ITEM_H * 2,
-              paddingBottom: ITEM_H * 2,
-            }}
-          >
+        <div className="rounded-2xl border border-white/15 bg-black/15 overflow-hidden" style={{ height: containerH }}>
+          <div ref={listRef} className="h-full overflow-y-scroll snap-y snap-mandatory scrollbar-none" style={{ paddingTop: ITEM_H * 2, paddingBottom: ITEM_H * 2 }}>
             {items.map((name, i) => (
-              <button
-                key={name}
-                type="button"
-                onClick={() => snapTo(i)}
-                className="w-full snap-start"
-                style={{ height: ITEM_H }}
-              >
-                <div
-                  className={[
-                    'h-full flex items-center justify-center',
-                    i === selectedIndex ? 'text-white text-lg' : 'text-white/55',
-                  ].join(' ')}
-                >
+              <button key={name} type="button" onClick={() => snapTo(i)} className="w-full snap-start" style={{ height: ITEM_H }}>
+                <div className={['h-full flex items-center justify-center', i === selectedIndex ? 'text-white text-lg' : 'text-white/55'].join(' ')}>
                   {name}
                 </div>
               </button>
@@ -299,14 +315,9 @@ function PickerTab() {
           </div>
         </div>
 
-      
-        <div
-          className="pointer-events-none absolute left-0 right-0 border-y border-white/30 bg-white/5"
-          style={{ top: ITEM_H * 2, height: ITEM_H }}
-        />
+        <div className="pointer-events-none absolute left-0 right-0 border-y border-white/30 bg-white/5" style={{ top: ITEM_H * 2, height: ITEM_H }} />
       </div>
 
- 
       <div className="mt-6 rounded-2xl bg-black/15 border border-white/15 p-4">
         <div className="text-white/70 text-sm">Tonight’s pick</div>
         <div className="text-white text-2xl font-semibold mt-1">{selected}</div>
@@ -315,7 +326,6 @@ function PickerTab() {
           <button
             className="flex-1 rounded-full bg-black/55 border border-white/20 py-3 text-sm tracking-widest"
             onClick={() => {
-             
               const idx = Math.floor(Math.random() * items.length)
               snapTo(idx)
             }}
@@ -323,9 +333,7 @@ function PickerTab() {
             PICK
           </button>
 
-          <button className="rounded-full bg-black/25 border border-white/20 px-5 py-3 text-sm tracking-widest">
-            SAVE
-          </button>
+          <button className="rounded-full bg-black/25 border border-white/20 px-5 py-3 text-sm tracking-widest">SAVE</button>
         </div>
       </div>
     </div>
@@ -396,12 +404,15 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
   }, [debounced, tab])
 
   return (
-    <div className="h-full">
+    <div className="h-full flex flex-col min-h-0">
+      {/* Header (matches home) */}
       <div className="px-5 pt-10 pb-5 bg-gradient-to-b from-[#1b1b1b] to-[#141414]">
         <div className="flex items-center justify-center gap-2">
-          <span className="text-white/90">☆</span>
-          <h1 className="text-white text-3xl tracking-widest font-semibold">Cinemate</h1>
-          <span className="text-white/90">☆</span>
+          <span className="text-white/90 text-2xl">☆</span>
+          <span className="text-white/90 text-2xl">☆</span>
+          <h1 className="text-white text-2xl tracking-widest font-normal">Cinemate</h1>
+          <span className="text-white/90 text-2xl">☆</span>
+          <span className="text-white/90 text-2xl">☆</span>
         </div>
 
         <div className="mt-4 relative">
@@ -413,19 +424,22 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
             ‹
           </button>
 
-          <div className="bg-white rounded-full pl-16 pr-4 py-3 flex items-center">
+          <div className="bg-white rounded-full pl-16 pr-4 h-11 flex items-center">
             <input
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search"
-              className="w-full bg-transparent outline-none text-[15px] text-black placeholder:text-black/40"
+              className="w-full bg-transparent outline-none text-[16px] leading-none text-black placeholder:text-black/40"
             />
           </div>
         </div>
       </div>
 
-      <div className="px-5 pt-4 pb-28 h-full bg-[#4b0f0f]">
+      <div
+        className="px-5 pt-4 pb-28 flex-1 min-h-0 overflow-y-auto bg-[#4b0f0f]"
+        style={{ borderTopLeftRadius: '0.9375rem', borderTopRightRadius: '0.9375rem' }}
+      >
         <div className="flex gap-4">
           <button
             onClick={() => setTab('films')}
@@ -450,101 +464,103 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <div className="mt-6 text-white text-2xl tracking-widest">
-          {tab === 'films' ? 'Most popular' : 'People'}
-        </div>
-
+        <div className="mt-6 text-white text-xl tracking-widest">{tab === 'films' ? 'Most popular' : 'People'}</div>
         <div className="mt-4 h-px bg-white/40" />
 
         {errorMsg && (
-          <div className="mt-4 rounded-xl border border-white/20 bg-black/20 p-3 text-red-200 text-sm">
-            {errorMsg}
-          </div>
+          <div className="mt-4 rounded-xl border border-white/20 bg-black/20 p-3 text-red-200 text-sm">{errorMsg}</div>
         )}
 
         <div className="mt-4">
           {tab === 'films' && isEmpty && (
             <ul>
-              {MOST_POPULAR.map((m) => (
-                <li key={m.id} className="border-b border-white/40 py-6">
-                  <div className="flex items-center gap-4">
-                    <div className="h-20 w-14 rounded-lg bg-white/10 border border-white/20 grid place-items-center">
-                      🎬
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="text-white font-semibold">
-                        {m.title} <span className="text-white/80">{m.year}</span>, directed
+              {MOST_POPULAR.map((m, i) => {
+                const rot = i % 2 === 0 ? '-rotate-2' : 'rotate-2'
+                const y = i % 2 === 0 ? 'translate-y-1' : '-translate-y-1'
+                return (
+                  <li key={m.id} className="border-b border-white/40 py-6 text-sm">
+                    <div className="flex items-center gap-4">
+                      <div className={['h-20 w-14 rounded-lg bg-white/10 border border-white/20 grid place-items-center', 'transform', rot, y].join(' ')}>
+                        🎬
                       </div>
-                      <div className="text-white/90">{m.director}</div>
-                    </div>
 
-                    <button className="px-5 py-2 rounded-full bg-black/60 text-white text-xs tracking-widest">
-                      MORE
-                    </button>
-                  </div>
-                </li>
-              ))}
+                      <div className="flex-1">
+                        <div className="text-white">
+                          <span className="font-semibold">{m.title}</span>{' '}
+                          <span className="text-white/80 font-normal">{m.year}, directed by</span>
+                        </div>
+                        <div className="text-white/90 font-normal">{m.director}</div>
+                      </div>
+
+                      <button className="px-5 py-2 rounded-full bg-black/60 text-white text-xs tracking-widest">MORE</button>
+                    </div>
+                  </li>
+                )
+              })}
             </ul>
           )}
 
+          {/* ✅ UPDATED: show year + director for searched movies too */}
           {tab === 'films' && !isEmpty && (
             <ul>
               {loading && <li className="text-white/70 py-4">Searching…</li>}
 
-              {!loading && !errorMsg && movieResults.length === 0 && (
-                <li className="text-white/70 py-4">No results found.</li>
-              )}
+              {!loading && !errorMsg && movieResults.length === 0 && <li className="text-white/70 py-4">No results found.</li>}
 
-              {movieResults.map((m) => (
-                <li key={m.id} className="border-b border-white/40 py-6">
-                  <div className="flex items-center gap-4">
-                    <div className="h-20 w-14 rounded-lg bg-white/10 border border-white/20 grid place-items-center">
-                      🎬
+              {movieResults.map((m, i) => {
+                const rot = i % 2 === 0 ? '-rotate-2' : 'rotate-2'
+                const y = i % 2 === 0 ? 'translate-y-1' : '-translate-y-1'
+
+                return (
+                  <li key={m.id} className="border-b border-white/40 py-6 text-sm">
+                    <div className="flex items-center gap-4">
+                      <div className={['h-20 w-14 rounded-lg bg-white/10 border border-white/20 grid place-items-center', 'transform', rot, y].join(' ')}>
+                        🎬
+                      </div>
+
+                      <div className="flex-1">
+                        <div className="text-white">
+                          <span className="font-semibold">{m.title}</span>{' '}
+                          {m.year ? <span className="text-white/80 font-normal">{m.year}, directed by</span> : null}
+                        </div>
+                        {m.director ? <div className="text-white/90 font-normal">{m.director}</div> : null}
+                      </div>
+
+                      <button className="px-5 py-2 rounded-full bg-black/60 text-white text-xs tracking-widest">MORE</button>
                     </div>
-
-                    <div className="flex-1">
-                      <div className="text-white font-semibold">{m.title}</div>
-                      <div className="text-white/80 text-sm">Movie</div>
-                    </div>
-
-                    <button className="px-5 py-2 rounded-full bg-black/60 text-white text-xs tracking-widest">
-                      MORE
-                    </button>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                )
+              })}
             </ul>
           )}
 
           {tab === 'friends' && (
             <ul>
-              {isEmpty && <li className="text-white/70 py-4">Type a name to search people…</li>}
-
+              {isEmpty && <li className="text-white/70 py-4 text-sm">Type a name to search people…</li>}
               {!isEmpty && loading && <li className="text-white/70 py-4">Searching…</li>}
+              {!isEmpty && !loading && !errorMsg && friendResults.length === 0 && <li className="text-white/70 py-4">No results found.</li>}
 
-              {!isEmpty && !loading && !errorMsg && friendResults.length === 0 && (
-                <li className="text-white/70 py-4">No results found.</li>
-              )}
+              {friendResults.map((f, i) => {
+                const rot = i % 2 === 0 ? '-rotate-2' : 'rotate-2'
+                const y = i % 2 === 0 ? 'translate-y-1' : '-translate-y-1'
 
-              {friendResults.map((f) => (
-                <li key={f.id} className="border-b border-white/40 py-6">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-white/10 border border-white/20 grid place-items-center">
-                      👤
+                return (
+                  <li key={f.id} className="border-b border-white/40 py-6">
+                    <div className="flex items-center gap-4">
+                      <div className={['h-12 w-12 rounded-full bg-white/10 border border-white/20 grid place-items-center', 'transform', rot, y].join(' ')}>
+                        👤
+                      </div>
+
+                      <div className="flex-1">
+                        <div className="text-white font-semibold">{f.label}</div>
+                        <div className="text-white/80 text-sm font-normal">Friend</div>
+                      </div>
+
+                      <button className="px-5 py-2 rounded-full bg-black/60 text-white text-xs tracking-widest">MORE</button>
                     </div>
-
-                    <div className="flex-1">
-                      <div className="text-white font-semibold">{f.label}</div>
-                      <div className="text-white/80 text-sm">Friend</div>
-                    </div>
-
-                    <button className="px-5 py-2 rounded-full bg-black/60 text-white text-xs tracking-widest">
-                      MORE
-                    </button>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>
@@ -553,11 +569,11 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
   )
 }
 
-
 declare global {
-
+  // eslint-disable-next-line no-var
   var __scrollbar_none_added: boolean | undefined
 }
+
 if (typeof window !== 'undefined' && !globalThis.__scrollbar_none_added) {
   globalThis.__scrollbar_none_added = true
   const style = document.createElement('style')
