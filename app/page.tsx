@@ -402,7 +402,7 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
         <div className="mt-4 relative">
           <button
             onClick={onClose}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-14 w-14 rounded-full bg-[#4b0f0f] shadow flex items-center justify-center text-white text-2xl"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-11.5 w-14 rounded-full bg-[#4b0f0f] shadow flex items-center justify-center text-white text-xl"
             aria-label="Back"
           >
             ‹
