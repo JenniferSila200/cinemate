@@ -12,7 +12,8 @@ const dmMono = DM_Mono({
 type Tab = 'films' | 'friends'
 type HomeTab = 'feed' | 'picker'
 
-type MovieRow = { id: string; title: string; year: number | null; director: string | null }
+// ✅ include poster_url so we can show posters in search results
+type MovieRow = { id: string; title: string; year: number | null; director: string | null; poster_url?: string | null }
 type FriendRow = { id: string; label: string }
 
 function useDebounced<T>(value: T, delay = 250) {
@@ -53,8 +54,13 @@ const PICKER_MOVIES = [
   'Home Alone',
 ] as const
 
+// ✅ now fetch poster_url too
 async function searchMovies(q: string) {
-  const { data, error } = await supabase.from('movies').select('id,title,year,director').ilike('title', `%${q}%`).limit(8)
+  const { data, error } = await supabase
+    .from('movies')
+    .select('id,title,year,director,poster_url')
+    .ilike('title', `%${q}%`)
+    .limit(8)
 
   return { data: (data ?? []) as MovieRow[], error }
 }
@@ -118,10 +124,7 @@ export default function Page() {
               </svg>
             </button>
 
-            <button
-              className="h-10 w-16 rounded-full bg-[#141414] border border-white text-white text-2xl grid place-items-center"
-              aria-label="Add"
-            >
+            <button className="h-10 w-16 rounded-full bg-[#141414] border border-white text-white text-2xl grid place-items-center" aria-label="Add">
               +
             </button>
 
@@ -323,7 +326,7 @@ function PickerTab() {
 }
 
 function SearchScreen({ onClose }: { onClose: () => void }) {
-  const router = useRouter() // ✅ added
+  const router = useRouter()
 
   const [tab, setTab] = useState<Tab>('films')
   const [query, setQuery] = useState('')
@@ -420,12 +423,17 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      <div className="px-5 pt-4 pb-28 flex-1 min-h-0 overflow-y-auto bg-[#4b0f0f]" style={{ borderTopLeftRadius: '0.9375rem', borderTopRightRadius: '0.9375rem' }}>
+      <div
+        className="px-5 pt-4 pb-28 flex-1 min-h-0 overflow-y-auto bg-[#4b0f0f]"
+        style={{ borderTopLeftRadius: '0.9375rem', borderTopRightRadius: '0.9375rem' }}
+      >
         <div className="flex gap-4">
           <button
             onClick={() => setTab('films')}
             className={
-              tab === 'films' ? 'px-5 py-2 rounded-full bg-black/55 text-white text-sm tracking-wide' : 'px-5 py-2 rounded-full bg-transparent text-white/80 text-sm tracking-wide'
+              tab === 'films'
+                ? 'px-5 py-2 rounded-full bg-black/55 text-white text-sm tracking-wide'
+                : 'px-5 py-2 rounded-full bg-transparent text-white/80 text-sm tracking-wide'
             }
           >
             FILMS
@@ -434,7 +442,9 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
           <button
             onClick={() => setTab('friends')}
             className={
-              tab === 'friends' ? 'px-5 py-2 rounded-full bg-black/55 text-white text-sm tracking-wide' : 'px-5 py-2 rounded-full bg-transparent text-white/80 text-sm tracking-wide'
+              tab === 'friends'
+                ? 'px-5 py-2 rounded-full bg-black/55 text-white text-sm tracking-wide'
+                : 'px-5 py-2 rounded-full bg-transparent text-white/80 text-sm tracking-wide'
             }
           >
             FRIENDS
@@ -447,47 +457,35 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
         {errorMsg && <div className="mt-4 rounded-xl border border-white/20 bg-black/20 p-3 text-red-200 text-sm">{errorMsg}</div>}
 
         <div className="mt-4">
+          {/* ✅ Most popular shows posters from DB by title */}
           {tab === 'films' && isEmpty && (
             <ul>
               {MOST_POPULAR.map((m, i) => {
                 const rot = i % 2 === 0 ? '-rotate-2' : 'rotate-2'
                 const y = i % 2 === 0 ? 'translate-y-1' : '-translate-y-1'
+
                 return (
-                  <li key={m.title} className="border-b border-white/40 py-6 text-sm">
-                    <div className="flex items-center gap-4">
-                      <div className={['h-20 w-14 rounded-lg bg-white/10 border border-white/20 grid place-items-center', 'transform', rot, y].join(' ')}>
-                        🎬
-                      </div>
-
-                      <div className="flex-1">
-                        <div className="text-white">
-                          <span className="font-semibold">{m.title}</span>{' '}
-                          <span className="text-white/80 font-normal">{m.year}, directed by</span>
-                        </div>
-                        <div className="text-white/90 font-normal">{m.director}</div>
-                      </div>
-
-                      {/* ✅ Most popular MORE: lookup real id by title, then navigate */}
-                      <button
-                        onClick={async () => {
-                          const { id } = await getMovieIdByTitle(m.title)
-                          if (id) router.push(`/movie/${id}`)
-                        }}
-                        className="px-5 py-2 rounded-full bg-black/60 text-white text-xs tracking-widest"
-                      >
-                        MORE
-                      </button>
-                    </div>
-                  </li>
+                  <PopularMovieRow
+                    key={m.title}
+                    title={m.title}
+                    year={m.year}
+                    director={m.director}
+                    rot={rot}
+                    y={y}
+                    onMore={async () => {
+                      const { id } = await getMovieIdByTitle(m.title)
+                      if (id) router.push(`/movie/${id}`)
+                    }}
+                  />
                 )
               })}
             </ul>
           )}
 
+          {/* ✅ Live search shows posters from movieResults.poster_url */}
           {tab === 'films' && !isEmpty && (
             <ul>
               {loading && <li className="text-white/70 py-4">Searching…</li>}
-
               {!loading && !errorMsg && movieResults.length === 0 && <li className="text-white/70 py-4">No results found.</li>}
 
               {movieResults.map((m, i) => {
@@ -497,9 +495,7 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
                 return (
                   <li key={m.id} className="border-b border-white/40 py-6 text-sm">
                     <div className="flex items-center gap-4">
-                      <div className={['h-20 w-14 rounded-lg bg-white/10 border border-white/20 grid place-items-center', 'transform', rot, y].join(' ')}>
-                        🎬
-                      </div>
+                      <PosterThumb poster_url={m.poster_url ?? null} title={m.title} rot={rot} y={y} />
 
                       <div className="flex-1">
                         <div className="text-white">
@@ -509,11 +505,7 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
                         {m.director ? <div className="text-white/90 font-normal">{m.director}</div> : null}
                       </div>
 
-                      {/* ✅ Searched movies MORE: navigate directly */}
-                      <button
-                        onClick={() => router.push(`/movie/${m.id}`)}
-                        className="px-5 py-2 rounded-full bg-black/60 text-white text-xs tracking-widest"
-                      >
+                      <button onClick={() => router.push(`/movie/${m.id}`)} className="px-5 py-2 rounded-full bg-black/60 text-white text-xs tracking-widest">
                         MORE
                       </button>
                     </div>
@@ -545,7 +537,9 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
                         <div className="text-white/80 text-sm font-normal">Friend</div>
                       </div>
 
-                      <button className="px-5 py-2 rounded-full bg-black/60 text-white text-xs tracking-widest">MORE</button>
+                      <button onClick={() => router.push(`/profile/${f.id}`)} className="px-5 py-2 rounded-full bg-black/60 text-white text-xs tracking-widest">
+                        MORE
+                      </button>
                     </div>
                   </li>
                 )
@@ -557,6 +551,103 @@ function SearchScreen({ onClose }: { onClose: () => void }) {
     </div>
   )
 }
+
+/* ---------- small components for posters ---------- */
+
+function PosterThumb({
+  poster_url,
+  title,
+  rot,
+  y,
+}: {
+  poster_url: string | null
+  title: string
+  rot: string
+  y: string
+}) {
+  const [ok, setOk] = useState(true)
+
+  return (
+    <div className={['h-20 w-14 rounded-lg bg-white/10 border border-white/20 overflow-hidden grid place-items-center', 'transform', rot, y].join(' ')}>
+      {poster_url && ok ? (
+        <img
+          src={poster_url}
+          alt={`${title} poster`}
+          className="h-full w-full object-cover"
+          onError={() => setOk(false)}
+          loading="lazy"
+        />
+      ) : (
+        <span>🎬</span>
+      )}
+    </div>
+  )
+}
+
+function PopularMovieRow({
+  title,
+  year,
+  director,
+  rot,
+  y,
+  onMore,
+}: {
+  title: string
+  year: string
+  director: string
+  rot: string
+  y: string
+  onMore: () => void
+}) {
+  const [posterUrl, setPosterUrl] = useState<string | null>(null)
+  const [ok, setOk] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    async function run() {
+      const { data } = await supabase.from('movies').select('poster_url').eq('title', title).limit(1).maybeSingle()
+      if (cancelled) return
+      setPosterUrl((data as any)?.poster_url ?? null)
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [title])
+
+  return (
+    <li className="border-b border-white/40 py-6 text-sm">
+      <div className="flex items-center gap-4">
+        <div className={['h-20 w-14 rounded-lg bg-white/10 border border-white/20 overflow-hidden grid place-items-center', 'transform', rot, y].join(' ')}>
+          {posterUrl && ok ? (
+            <img
+              src={posterUrl}
+              alt={`${title} poster`}
+              className="h-full w-full object-cover"
+              onError={() => setOk(false)}
+              loading="lazy"
+            />
+          ) : (
+            <span>🎬</span>
+          )}
+        </div>
+
+        <div className="flex-1">
+          <div className="text-white">
+            <span className="font-semibold">{title}</span> <span className="text-white/80 font-normal">{year}, directed by</span>
+          </div>
+          <div className="text-white/90 font-normal">{director}</div>
+        </div>
+
+        <button onClick={onMore} className="px-5 py-2 rounded-full bg-black/60 text-white text-xs tracking-widest">
+          MORE
+        </button>
+      </div>
+    </li>
+  )
+}
+
+/* ---------- scrollbar utility ---------- */
 
 declare global {
   // eslint-disable-next-line no-var
