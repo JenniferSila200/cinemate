@@ -246,13 +246,7 @@ export default function PersonalProfilePage() {
             </div>
 
             <div className="mt-4 flex items-center justify-between">
-              <button
-                onClick={() => router.push('/')}
-                className="h-9 w-9 rounded-full bg-[#4b0f0f] flex items-center justify-center text-white"
-                aria-label="Back to search"
-              >
-                <span className="text-lg leading-none">‹</span>
-              </button>
+             
 
               <div className="h-9 w-9" />
             </div>
@@ -309,7 +303,7 @@ export default function PersonalProfilePage() {
               <PosterRow movies={favourites} borderColor="border-[#620104]" />
             </Section>
 
-{/* Watchlist / Lists / Diary */}
+
 <div className="mt-6 px-6">
   <div className="grid grid-cols-3 gap-4">
     {/* Films */}

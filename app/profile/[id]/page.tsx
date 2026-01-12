@@ -304,7 +304,7 @@ export default function ProfilePage() {
               </Section>
             ))}
 
-            {/* ✅ Move favourites up: smaller top margin */}
+           
             <Section title="Favourites" mtClass="mt-2">
               <PosterRow movies={favourites} borderColor="border-[#620104]" />
             </Section>
@@ -390,9 +390,7 @@ function Section({
   rounded?: boolean
   inset?: boolean
 }) {
-  // ✅ Wider pinboard/inset sections:
-  // - reduce outer margins from mx-6 -> mx-3
-  // - reduce padding slightly but keep it roomy
+  
   const outer = inset ? 'mx-3' : ''
   const padding = inset ? 'px-4 py-4' : 'px-6 py-4'
 

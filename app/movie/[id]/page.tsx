@@ -15,7 +15,7 @@ type MovieRow = {
   title: string
   year: number | null
   director: string | null
-  // ✅ NEW: include poster_url so we can render it on the movie profile page
+ 
   poster_url?: string | null
 }
 
@@ -61,7 +61,7 @@ export default function MovieProfilePage() {
       setLoading(true)
       setErr(null)
 
-      // ✅ UPDATED: fetch poster_url too
+     
       const movieRes = await supabase
         .from('movies')
         .select('id,title,year,director,poster_url')
@@ -139,7 +139,7 @@ export default function MovieProfilePage() {
             </div>
 
             <div className="mt-4 flex items-center justify-between">
-              {/* ✅ smaller back button + go to live search page */}
+             
               <button
                 onClick={() => router.push('/')}
                 className="h-9 w-9 rounded-full bg-[#4b0f0f] flex items-center justify-center text-white"
@@ -151,7 +151,7 @@ export default function MovieProfilePage() {
               <div className="h-9 w-9" />
             </div>
 
-            {/* ✅ Poster now renders from movies.poster_url */}
+         
             <div className="pointer-events-none absolute left-1/2 top-25 -translate-x-1/2 z-30">
               <MoviePosterCard posterUrl={movie?.poster_url} title={movie?.title ?? 'Movie poster'} />
             </div>
