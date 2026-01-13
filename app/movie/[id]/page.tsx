@@ -10,6 +10,9 @@ const dmMono = DM_Mono({
   subsets: ['latin'],
 })
 
+const MY_PROFILE_ID = "me"; 
+
+
 type MovieRow = {
   id: string
   title: string
@@ -292,19 +295,24 @@ export default function MovieProfilePage() {
               +
             </button>
 
-            <button className="text-white/80 grid place-items-center" aria-label="Profile">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="h-7 w-7"
-              >
-                <path d="M20 21a8 8 0 0 0-16 0" />
-                <circle cx="12" cy="8" r="4" />
-              </svg>
-            </button>
+            <button
+  className="text-white/80 grid place-items-center"
+  aria-label="Profile"
+  onClick={() => router.push(`/personal/${MY_PROFILE_ID}`)}
+>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    className="h-7 w-7"
+  >
+    <path d="M20 21a8 8 0 0 0-16 0" />
+    <circle cx="12" cy="8" r="4" />
+  </svg>
+</button>
+
           </div>
         </div>
       </div>

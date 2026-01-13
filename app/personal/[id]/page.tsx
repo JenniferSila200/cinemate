@@ -307,10 +307,14 @@ export default function PersonalProfilePage() {
 <div className="mt-6 px-6">
   <div className="grid grid-cols-3 gap-4">
     {/* Films */}
-    <button className="bg-[#620104] rounded-2xl h-28 flex flex-col items-center justify-center text-white shadow-md">
-      <span className="text-3xl mb-2">📺</span>
-      <span className="text-sm tracking-wide">Films</span>
-    </button>
+    <button
+  onClick={() => router.push('/list')}
+  className="bg-[#620104] rounded-2xl h-28 flex flex-col items-center justify-center text-white shadow-md"
+>
+  <span className="text-3xl mb-2">📺</span>
+  <span className="text-sm tracking-wide">Films</span>
+</button>
+
 
     {/* Watchlist */}
     <button className="bg-[#620104] rounded-2xl h-28 flex flex-col items-center justify-center text-white shadow-md">
@@ -341,9 +345,14 @@ export default function PersonalProfilePage() {
               </svg>
             </button>
 
-            <button className="h-10 w-16 rounded-full bg-[#141414] border border-white text-white text-2xl grid place-items-center" aria-label="Add">
-              +
-            </button>
+             <button
+  className="h-10 w-16 rounded-full bg-[#141414] border border-white text-white text-2xl grid place-items-center"
+  aria-label="Add"
+  onClick={() => router.push('/rating')}
+>
+  +
+</button>
+
 
            <button
   className="text-white/80 grid place-items-center"

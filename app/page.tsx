@@ -30,7 +30,14 @@ function formatSupabaseError(error: unknown) {
   return parts.length ? parts.join(' • ') : 'Unknown error'
 }
 
-/** Hard-coded list for the spin the wheel */
+function buildWordStartPatterns(q: string) {
+  const s = q.trim().replace(/\s+/g, ' ')
+  if (!s) return []
+  // start of string OR start of any word (after a space)
+  return [s + '%', '% ' + s + '%']
+}
+
+
 const PICKER_MOVIES = [
   'Saltburn',
   'La La Land',
@@ -48,12 +55,25 @@ const MY_PROFILE_ID = '8c2d4b5a-1b6d-4c7a-9d26-5c4f73f2a9c1'
 
 
 async function searchMovies(q: string) {
-  const { data, error } = await supabase.from('movies').select('id,title,year,director,poster_url').ilike('title', `%${q}%`).limit(8)
+  const patterns = buildWordStartPatterns(q)
+  if (!patterns.length) return { data: [] as MovieRow[], error: null }
+
+  const orExpr = patterns.map((p) => `title.ilike.${p}`).join(',')
+
+  const { data, error } = await supabase
+    .from('movies')
+    .select('id,title,year,director,poster_url')
+    .or(orExpr)
+    .limit(8)
+
   return { data: (data ?? []) as MovieRow[], error }
 }
 
 
 async function searchFriends(q: string) {
+  const patterns = buildWordStartPatterns(q)
+  if (!patterns.length) return { data: [] as FriendRow[], error: null }
+
   const tables = ['profiles', 'friends'] as const
   const cols = ['display_name', 'username', 'name', 'full_name'] as const
 
@@ -61,9 +81,11 @@ async function searchFriends(q: string) {
 
   for (const table of tables) {
     for (const col of cols) {
- 
       const selectStr = table === 'profiles' ? `id,label:${col},avatar_url` : `id,label:${col}`
-      const { data, error } = await supabase.from(table).select(selectStr).ilike(col, `%${q}%`).limit(8)
+
+      const orExpr = patterns.map((p) => `${col}.ilike.${p}`).join(',')
+
+      const { data, error } = await supabase.from(table).select(selectStr).or(orExpr).limit(8)
 
       if (!error) {
         const friends = (data ?? [])
@@ -82,6 +104,7 @@ async function searchFriends(q: string) {
 
   return { data: [] as FriendRow[], error: lastError }
 }
+
 
 
 async function fetchMostPopularMovies() {
@@ -154,10 +177,7 @@ async function fetchRecommendedFromTaste(profileId: string, limit = 8) {
   return { data: picked as MovieRow[], error: null }
 }
 
-/**
- * ✅ Friend’s recommendations
- * Pull films friends (people you follow) have added to favourites OR pinboards.
- */
+
 async function fetchFriendsRecommendations(profileId: string, limit = 12) {
   const { data: follows, error: fErr } = await supabase.from('follows').select('following_id').eq('follower_id', profileId)
   if (fErr) return { data: [] as MovieRow[], error: fErr }
@@ -234,9 +254,16 @@ export default function Page() {
               </svg>
             </button>
 
-            <button className="h-10 w-16 rounded-full bg-[#141414] border border-white text-white text-2xl grid place-items-center" aria-label="Add">
-              +
-            </button>
+        <button
+  className="h-10 w-16 rounded-full bg-[#141414] border border-white text-white text-2xl grid place-items-center"
+  aria-label="Add"
+  onClick={() => router.push('/rating')}
+>
+  +
+</button>
+
+
+
 
             <button className="text-white/80 grid place-items-center" aria-label="Profile" onClick={() => router.push(`/personal/${MY_PROFILE_ID}`)}>
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7">
@@ -810,7 +837,7 @@ function SearchScreen({ onClose, onFollowChanged }: { onClose: () => void; onFol
                   <li
                     key={f.id}
                     className="border-b border-white/40 py-6"
-                    // ✅ click anywhere on the row (except the ADD button) to go to /profile/[id]
+           
                     onClick={() => router.push(`/profile/${f.id}`)}
                     role="button"
                     tabIndex={0}
@@ -828,7 +855,7 @@ function SearchScreen({ onClose, onFollowChanged }: { onClose: () => void; onFol
 
                       <button
                         onClick={(e) => {
-                          e.stopPropagation() // ✅ don't navigate when tapping ADD
+                          e.stopPropagation() 
                           toggleFollow(f.id)
                         }}
                         disabled={isBusy}
