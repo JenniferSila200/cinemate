@@ -1,6 +1,6 @@
 'use client'
 import { DM_Mono } from 'next/font/google'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 
@@ -37,7 +37,6 @@ function buildWordStartPatterns(q: string) {
   return [s + '%', '% ' + s + '%']
 }
 
-
 const PICKER_MOVIES = [
   'Saltburn',
   'La La Land',
@@ -53,22 +52,16 @@ const PICKER_MOVIES = [
 
 const MY_PROFILE_ID = '8c2d4b5a-1b6d-4c7a-9d26-5c4f73f2a9c1'
 
-
 async function searchMovies(q: string) {
   const patterns = buildWordStartPatterns(q)
   if (!patterns.length) return { data: [] as MovieRow[], error: null }
 
   const orExpr = patterns.map((p) => `title.ilike.${p}`).join(',')
 
-  const { data, error } = await supabase
-    .from('movies')
-    .select('id,title,year,director,poster_url')
-    .or(orExpr)
-    .limit(8)
+  const { data, error } = await supabase.from('movies').select('id,title,year,director,poster_url').or(orExpr).limit(8)
 
   return { data: (data ?? []) as MovieRow[], error }
 }
-
 
 async function searchFriends(q: string) {
   const patterns = buildWordStartPatterns(q)
@@ -82,7 +75,6 @@ async function searchFriends(q: string) {
   for (const table of tables) {
     for (const col of cols) {
       const selectStr = table === 'profiles' ? `id,label:${col},avatar_url` : `id,label:${col}`
-
       const orExpr = patterns.map((p) => `${col}.ilike.${p}`).join(',')
 
       const { data, error } = await supabase.from(table).select(selectStr).or(orExpr).limit(8)
@@ -105,8 +97,6 @@ async function searchFriends(q: string) {
   return { data: [] as FriendRow[], error: lastError }
 }
 
-
-
 async function fetchMostPopularMovies() {
   const { data, error } = await supabase
     .from('movies')
@@ -117,7 +107,6 @@ async function fetchMostPopularMovies() {
 
   return { data: (data ?? []) as MovieRow[], error }
 }
-
 
 async function fetchRecommendedFromTaste(profileId: string, limit = 8) {
   const { data: favRows, error: favErr } = await supabase.from('favourite_movies').select('movie_id').eq('profile_id', profileId)
@@ -155,7 +144,11 @@ async function fetchRecommendedFromTaste(profileId: string, limit = 8) {
   )
   if (!directors.length) return { data: [] as MovieRow[], error: null }
 
-  const { data: candidates, error: candErr } = await supabase.from('movies').select('id,title,year,director,poster_url').in('director', directors).limit(60)
+  const { data: candidates, error: candErr } = await supabase
+    .from('movies')
+    .select('id,title,year,director,poster_url')
+    .in('director', directors)
+    .limit(60)
   if (candErr) return { data: [] as MovieRow[], error: candErr }
 
   const filtered = (candidates ?? [])
@@ -176,7 +169,6 @@ async function fetchRecommendedFromTaste(profileId: string, limit = 8) {
 
   return { data: picked as MovieRow[], error: null }
 }
-
 
 async function fetchFriendsRecommendations(profileId: string, limit = 12) {
   const { data: follows, error: fErr } = await supabase.from('follows').select('following_id').eq('follower_id', profileId)
@@ -232,18 +224,13 @@ export default function Page() {
   const router = useRouter()
   const [searchOpen, setSearchOpen] = useState(false)
 
-  
   const [followTick, setFollowTick] = useState(0)
   const bumpFollowTick = () => setFollowTick((n) => n + 1)
 
   return (
     <div className={`${dmMono.className} min-h-screen bg-black flex items-center justify-center p-6`}>
       <div className="relative h-[844px] w-[390px] overflow-hidden rounded-[44px] border border-white/10 bg-[#141414] shadow-[0_24px_80px_rgba(0,0,0,0.6)]">
-        {!searchOpen ? (
-          <HomeScreen onOpenSearch={() => setSearchOpen(true)} followTick={followTick} />
-        ) : (
-          <SearchScreen onClose={() => setSearchOpen(false)} onFollowChanged={bumpFollowTick} />
-        )}
+        {!searchOpen ? <HomeScreen onOpenSearch={() => setSearchOpen(true)} followTick={followTick} /> : <SearchScreen onClose={() => setSearchOpen(false)} onFollowChanged={bumpFollowTick} />}
 
         <div className="absolute bottom-0 left-0 right-0 z-30 bg-[#141414] border-t border-white/10">
           <div className="h-20 px-10 flex items-center justify-between">
@@ -254,16 +241,9 @@ export default function Page() {
               </svg>
             </button>
 
-        <button
-  className="h-10 w-16 rounded-full bg-[#141414] border border-white text-white text-2xl grid place-items-center"
-  aria-label="Add"
-  onClick={() => router.push('/rating')}
->
-  +
-</button>
-
-
-
+            <button className="h-10 w-16 rounded-full bg-[#141414] border border-white text-white text-2xl grid place-items-center" aria-label="Add" onClick={() => router.push('/rating')}>
+              +
+            </button>
 
             <button className="text-white/80 grid place-items-center" aria-label="Profile" onClick={() => router.push(`/personal/${MY_PROFILE_ID}`)}>
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7">
@@ -318,7 +298,10 @@ function HomeScreen({ onOpenSearch, followTick }: { onOpenSearch: () => void; fo
         </div>
       </div>
 
-      <div className="h-[calc(844px-(10rem))]">{homeTab === 'feed' ? <FeedTab followTick={followTick} /> : <PickerTab />}</div>
+      <div className="h-[calc(844px-(10rem))] overflow-y-auto scrollbar-none">
+  {homeTab === 'feed' ? <FeedTab followTick={followTick} /> : <PickerTab />}
+</div>
+
     </div>
   )
 }
@@ -451,13 +434,7 @@ function MoviePosterCard({ movie, className = '', onClick }: { movie: MovieRow; 
       title={movie.title}
     >
       {movie.poster_url && ok ? (
-        <img
-          src={movie.poster_url}
-          className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
-          alt={movie.title}
-          onError={() => setOk(false)}
-          loading="lazy"
-        />
+        <img src={movie.poster_url} className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" alt={movie.title} onError={() => setOk(false)} loading="lazy" />
       ) : (
         <div className="h-full w-full grid place-items-center">🎬</div>
       )}
@@ -469,90 +446,310 @@ function MoviePosterCard({ movie, className = '', onClick }: { movie: MovieRow; 
   )
 }
 
-function PickerTab() {
-  const items = PICKER_MOVIES
-  const ITEM_H = 44
-  const VISIBLE = 5
-  const containerH = ITEM_H * VISIBLE
 
-  const listRef = useRef<HTMLDivElement | null>(null)
-  const [selectedIndex, setSelectedIndex] = useState(0)
+function PickerTab() {
+  const router = useRouter()
+
+  const [items, setItems] = useState<MovieRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState<string | null>(null)
+
+  const [rotation, setRotation] = useState(0) 
+  const [spinning, setSpinning] = useState(false)
+  const [picked, setPicked] = useState<MovieRow | null>(null)
+
+  const WHEEL_SIZE = 290
 
   useEffect(() => {
-    const el = listRef.current
-    if (!el) return
-    el.scrollTop = selectedIndex * ITEM_H
-   
+    let cancelled = false
+    ;(async () => {
+      setLoading(true)
+      setErr(null)
+      try {
+        const { data, error } = await fetchRecommendedFromTaste(MY_PROFILE_ID, 10)
+        if (cancelled) return
+        if (error) {
+          setItems([])
+          setErr(formatSupabaseError(error))
+        } else {
+          setItems(data)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  useEffect(() => {
-    const el = listRef.current
-    if (!el) return
+  const wheelItems: MovieRow[] = useMemo(() => {
+    if (items.length >= 6) return items
+    return (PICKER_MOVIES as readonly string[]).map((t, idx) => ({
+      id: `fallback-${idx}`,
+      title: t,
+      year: null,
+      director: null,
+      poster_url: null,
+    }))
+  }, [items])
 
-    let raf = 0
-    const onScroll = () => {
-      cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(() => {
-        const idx = Math.round(el.scrollTop / ITEM_H)
-        setSelectedIndex(Math.max(0, Math.min(items.length - 1, idx)))
-      })
-    }
+  const N = Math.max(6, Math.min(12, wheelItems.length))
+  const sliced = wheelItems.slice(0, N)
+  const stepDeg = 360 / N
 
-    el.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      cancelAnimationFrame(raf)
-      el.removeEventListener('scroll', onScroll)
-    }
-  }, [items.length])
+  function normalizeDeg(deg: number) {
+    const x = deg % 360
+    return x < 0 ? x + 360 : x
+  }
 
-  const selected = items[selectedIndex]
+ 
+  function indexAtPointer(rotDeg: number) {
+    const rot = normalizeDeg(rotDeg)
+ 
+    const offset = normalizeDeg((-90 - rot) - (-90 - stepDeg / 2))
+    const idx = Math.floor(offset / stepDeg) % N
+    return idx
+  }
 
-  const snapTo = (idx: number) => {
-    const el = listRef.current
-    if (!el) return
-    el.scrollTo({ top: idx * ITEM_H, behavior: 'smooth' })
+  function spin() {
+    if (spinning) return
+    if (!sliced.length) return
+
+    const targetIndex = Math.floor(Math.random() * sliced.length)
+    const fullSpins = 5 + Math.floor(Math.random() * 3) // 5–7
+
+   
+    const delta = fullSpins * 360 - targetIndex * stepDeg
+
+    setPicked(null)
+    setSpinning(true)
+    setRotation((prev) => prev + delta)
+  }
+
+  function onSpinEnd() {
+    setSpinning(false)
+    const idx = indexAtPointer(rotation)
+    setPicked(sliced[idx] ?? null)
   }
 
   return (
     <div className="bg-[#4b0f0f] h-full px-5 pt-6 pb-28 text-white">
-      <h2 className="text-xl tracking-widest mb-4">Movie picker</h2>
-
-      <div className="relative mx-auto w-full max-w-[320px]">
-        <div className="rounded-2xl border border-white/15 bg-black/15 overflow-hidden" style={{ height: containerH }}>
-          <div ref={listRef} className="h-full overflow-y-scroll snap-y snap-mandatory scrollbar-none" style={{ paddingTop: ITEM_H * 2, paddingBottom: ITEM_H * 2 }}>
-            {items.map((name, i) => (
-              <button key={name} type="button" onClick={() => snapTo(i)} className="w-full snap-start" style={{ height: ITEM_H }}>
-                <div className={['h-full flex items-center justify-center', i === selectedIndex ? 'text-white text-lg' : 'text-white/55'].join(' ')}>
-                  {name}
-                </div>
-              </button>
-            ))}
-          </div>
+      <div className="flex flex-col items-center text-center">
+        <div className="flex items-center gap-2">
+          <span className="text-white/90 text-2xl">☆</span>
+          <h2 className="text-xl tracking-widest">Movie picker</h2>
+          <span className="text-white/90 text-2xl">☆</span>
         </div>
 
-        <div className="pointer-events-none absolute left-0 right-0 border-y border-white/30 bg-white/5" style={{ top: ITEM_H * 2, height: ITEM_H }} />
+        <div className="mt-1 text-white/70 text-xs tracking-widest">{loading ? 'LOADING…' : 'SPIN TO PICK'}</div>
       </div>
 
-      <div className="mt-6 rounded-2xl bg-black/15 border border-white/15 p-4">
-        <div className="text-white/70 text-sm">Tonight’s pick</div>
-        <div className="text-white text-2xl font-semibold mt-1">{selected}</div>
+      {err && <div className="mt-4 rounded-xl border border-white/20 bg-black/20 p-3 text-red-200 text-sm">{err}</div>}
 
-        <div className="mt-4 flex gap-3">
-          <button
-            className="flex-1 rounded-full bg-black/55 border border-white/20 py-3 text-sm tracking-widest"
-            onClick={() => {
-              const idx = Math.floor(Math.random() * items.length)
-              snapTo(idx)
-            }}
-          >
-            PICK
-          </button>
+      <div className="mt-6 flex flex-col items-center">
+    
+<div className="mt-6 flex flex-col items-center">
+  <button
+    type="button"
+    onClick={spin}
+    disabled={spinning || loading}
+    aria-label="Spin the wheel"
+    className={[
+      'relative overflow-visible',
+      'rounded-full',
+      spinning || loading ? 'opacity-80 cursor-not-allowed' : 'cursor-pointer',
+  
+      'select-none',
+      'active:scale-[0.99]',
+      '[ -webkit-tap-highlight-color:transparent ]',
+    ].join(' ')}
+    style={{ width: WHEEL_SIZE, height: WHEEL_SIZE }}
+  >
+ 
+    <div className="absolute inset-0 rounded-full border border-white/30 shadow-[0_28px_60px_rgba(0,0,0,0.55)] overflow-hidden bg-black/30">
+    
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 z-[50] pointer-events-none">
+      
+        <div
+          className="w-0 h-0"
+          style={{
+            borderLeft: '18px solid transparent',
+            borderRight: '18px solid transparent',
+            borderTop: '31px solid rgba(255,255,255,0.85)',
+            filter: 'drop-shadow(0 6px 10px rgba(0,0,0,0.35))',
+          }}
+        />
+      
+        <div
+          className="w-0 h-0 -mt-[29px]"
+          style={{
+            borderLeft: '16px solid transparent',
+            borderRight: '16px solid transparent',
+            borderTop: '28px solid #b80f0f',
+            filter: 'drop-shadow(0 10px 12px rgba(0,0,0,0.55))',
+          }}
+        />
+      </div>
 
-          <button className="rounded-full bg-black/25 border border-white/20 px-5 py-3 text-sm tracking-widest">SAVE</button>
+      {/* Rotating wheel */}
+      <div
+        className="absolute inset-0 z-[10]"
+        style={{
+          transform: `rotate(${rotation}deg)`,
+          transition: spinning ? 'transform 4.2s cubic-bezier(0.12, 0.68, 0.12, 1)' : 'transform 300ms ease',
+          willChange: 'transform',
+        }}
+        onTransitionEnd={() => {
+          if (spinning) onSpinEnd()
+        }}
+      >
+        <WheelSVG items={sliced} size={WHEEL_SIZE} />
+      </div>
+
+   
+      <div className="absolute inset-0 z-[20] grid place-items-center pointer-events-none">
+        <div className="h-14 w-14 rounded-full bg-[#141414] border border-white/30 shadow-[0_12px_28px_rgba(0,0,0,0.6)] grid place-items-center">
+          <div className="h-4 w-4 rounded-full bg-white/90" />
         </div>
+      </div>
+
+     
+      {!spinning && !loading && (
+        <div className="absolute inset-0 z-[30] grid place-items-center pointer-events-none">
+          <div className="px-4 py-2 rounded-full bg-black/45 border border-white/15 text-[11px] tracking-widest text-white/90">
+            TAP TO SPIN
+          </div>
+        </div>
+      )}
+    </div>
+  </button>
+</div>
+
+
+
+        {/* Result card */}
+     <div className="mt-4 w-full min-h-[110px] rounded-xl bg-black/15 border border-white/15 px-4 py-3">
+  <div className="text-white/60 text-xs">Your pick</div>
+
+  <div className="mt-0.5 flex items-center gap-2">
+    <div className="flex-1 text-white text-base font-semibold leading-tight truncate">
+      {picked ? picked.title : loading ? 'Loading…' : 'Spin the wheel'}
+    </div>
+
+    <button
+      className={[
+        'rounded-full bg-black/25 border border-white/20 px-4 py-2 text-xs tracking-widest',
+        !picked ? 'opacity-60 cursor-not-allowed' : '',
+      ].join(' ')}
+      disabled={!picked}
+      onClick={() => {
+        if (!picked) return
+        if (!picked.id.startsWith('fallback-')) router.push(`/movie/${picked.id}`)
+      }}
+    >
+      MORE
+    </button>
+  </div>
+</div>
+
+
       </div>
     </div>
   )
+}
+
+
+function WheelSVG({ items, size }: { items: MovieRow[]; size: number }) {
+  const N = items.length
+  const step = (Math.PI * 2) / N
+  const cx = size / 2
+  const cy = size / 2
+  const r = size / 2
+  const inner = 0 
+
+
+  const startAngle0 = -Math.PI / 2 - step / 2
+
+  function polar(angle: number, radius: number) {
+    return { x: cx + Math.cos(angle) * radius, y: cy + Math.sin(angle) * radius }
+  }
+
+  function wedgePath(i: number) {
+    const a0 = startAngle0 + i * step
+    const a1 = a0 + step
+    const p0 = polar(a0, r)
+    const p1 = polar(a1, r)
+
+    const largeArc = step > Math.PI ? 1 : 0
+
+    if (inner <= 0) {
+      return `M ${cx} ${cy} L ${p0.x} ${p0.y} A ${r} ${r} 0 ${largeArc} 1 ${p1.x} ${p1.y} Z`
+    }
+
+    const q0 = polar(a0, inner)
+    const q1 = polar(a1, inner)
+    return `M ${q0.x} ${q0.y} L ${p0.x} ${p0.y} A ${r} ${r} 0 ${largeArc} 1 ${p1.x} ${p1.y} L ${q1.x} ${q1.y} A ${inner} ${inner} 0 ${largeArc} 0 ${q0.x} ${q0.y} Z`
+  }
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        {items.map((m, i) => {
+          const pid = `p-${m.id}-${i}`
+          if (!m.poster_url) return null
+          return (
+            <pattern key={pid} id={pid} patternUnits="objectBoundingBox" width="1" height="1">
+              <image href={m.poster_url ?? undefined} x="0" y="0" width={size} height={size} preserveAspectRatio="xMidYMid slice" />
+            </pattern>
+          )
+        })}
+        <radialGradient id="vignette" cx="50%" cy="50%" r="70%">
+          <stop offset="60%" stopColor="rgba(0,0,0,0)" />
+          <stop offset="100%" stopColor="rgba(0,0,0,0.55)" />
+        </radialGradient>
+      </defs>
+
+      {items.map((m, i) => {
+        const hasPoster = !!m.poster_url
+        const fill = hasPoster ? `url(#p-${m.id}-${i})` : 'rgba(20,20,20,1)'
+        return <path key={m.id} d={wedgePath(i)} fill={fill} stroke="rgba(255,255,255,0.85)" strokeWidth={2} />
+      })}
+
+    
+      {items.map((m, i) => {
+        if (m.poster_url) return null
+        const angle = startAngle0 + i * step + step / 2
+        const pos = {
+          x: cx + Math.cos(angle) * (r * 0.62),
+          y: cy + Math.sin(angle) * (r * 0.62),
+        }
+        const rotate = (angle * 180) / Math.PI + 90
+        return (
+          <text
+            key={`${m.id}-t`}
+            x={pos.x}
+            y={pos.y}
+            fill="rgba(255,255,255,0.9)"
+            fontSize="11"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            transform={`rotate(${rotate} ${pos.x} ${pos.y})`}
+          >
+            {truncate(m.title, 14)}
+          </text>
+        )
+      })}
+
+      <circle cx={cx} cy={cy} r={r} fill="url(#vignette)" />
+    </svg>
+  )
+}
+
+function truncate(s: string, n: number) {
+  const t = String(s ?? '')
+  if (t.length <= n) return t
+  return t.slice(0, Math.max(0, n - 1)) + '…'
 }
 
 function SearchScreen({ onClose, onFollowChanged }: { onClose: () => void; onFollowChanged: () => void }) {
@@ -775,8 +972,7 @@ function SearchScreen({ onClose, onFollowChanged }: { onClose: () => void; onFol
                       <PosterThumb poster_url={m.poster_url ?? null} title={m.title} rot={rot} y={y} />
                       <div className="flex-1">
                         <div className="text-white">
-                          <span className="font-semibold">{m.title}</span>{' '}
-                          {m.year ? <span className="text-white/80 font-normal">{m.year}, directed by</span> : null}
+                          <span className="font-semibold">{m.title}</span> {m.year ? <span className="text-white/80 font-normal">{m.year}, directed by</span> : null}
                         </div>
                         {m.director ? <div className="text-white/90 font-normal">{m.director}</div> : null}
                       </div>
@@ -806,8 +1002,7 @@ function SearchScreen({ onClose, onFollowChanged }: { onClose: () => void; onFol
                       <PosterThumb poster_url={m.poster_url ?? null} title={m.title} rot={rot} y={y} />
                       <div className="flex-1">
                         <div className="text-white">
-                          <span className="font-semibold">{m.title}</span>{' '}
-                          {m.year ? <span className="text-white/80 font-normal">{m.year}, directed by</span> : null}
+                          <span className="font-semibold">{m.title}</span> {m.year ? <span className="text-white/80 font-normal">{m.year}, directed by</span> : null}
                         </div>
                         {m.director ? <div className="text-white/90 font-normal">{m.director}</div> : null}
                       </div>
@@ -837,7 +1032,6 @@ function SearchScreen({ onClose, onFollowChanged }: { onClose: () => void; onFol
                   <li
                     key={f.id}
                     className="border-b border-white/40 py-6"
-           
                     onClick={() => router.push(`/profile/${f.id}`)}
                     role="button"
                     tabIndex={0}
@@ -855,7 +1049,7 @@ function SearchScreen({ onClose, onFollowChanged }: { onClose: () => void; onFol
 
                       <button
                         onClick={(e) => {
-                          e.stopPropagation() 
+                          e.stopPropagation()
                           toggleFollow(f.id)
                         }}
                         disabled={isBusy}
@@ -875,22 +1069,15 @@ function SearchScreen({ onClose, onFollowChanged }: { onClose: () => void; onFol
   )
 }
 
-
-
 function PosterThumb({ poster_url, title, rot, y }: { poster_url: string | null; title: string; rot: string; y: string }) {
   const [ok, setOk] = useState(true)
 
   return (
     <div className={['h-20 w-14 rounded-lg bg-white/10 border border-white/20 overflow-hidden grid place-items-center', 'transform', rot, y].join(' ')}>
-      {poster_url && ok ? (
-        <img src={poster_url} alt={`${title} poster`} className="h-full w-full object-cover" onError={() => setOk(false)} loading="lazy" />
-      ) : (
-        <span>🎬</span>
-      )}
+      {poster_url && ok ? <img src={poster_url} alt={`${title} poster`} className="h-full w-full object-cover" onError={() => setOk(false)} loading="lazy" /> : <span>🎬</span>}
     </div>
   )
 }
-
 
 function AvatarThumb({ avatarUrl, rot, y }: { avatarUrl: string | null; rot: string; y: string }) {
   const [ok, setOk] = useState(true)
