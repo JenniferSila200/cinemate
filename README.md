@@ -41,6 +41,13 @@ For my individual project, I made a movie app where users can search for movies,
   - React
   - Supabase
 
+# To Do
+
+If I had more time for this project I would have added:
+
+- Real log in/authentication
+- ImdB API instead of movie database so you can search for more movies
+
 # Contact
 
 For any questions please mail me: 481240@student.fontys.nl
