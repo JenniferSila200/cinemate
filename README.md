@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Movie app/ Project X
 
-## Getting Started
+For my individual project, I made a movie app where users can search for movies, view detailed information, log what they've watched, rate films and connect with friends. The movie app combines movie exploration, personal watch history and social features into one place. 
 
-First, run the development server:
+# Main features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Movie search and movie pages
+   Users can search for movies and view pages of each movie in the database. Each movie has their own unique information such as:
+   - Running time
+   - Rating
+   - Synopsis
+   - Movie vibe checker
+   - Survival kit
+   - Toilet time
+  
+  2. Rating, watch log system
+     Users can track what they have watched and rate it.
+     - Rate movies
+     - Logging films they have watched
+     - Adding the date they have seen the movie
+     - Remove the movie from their "watch' list
+    
+  3. Spinning wheel recommendation
+     The spinning wheel randomly selects a movie for the user to watch based on their movie recommendations. This is meant for when users are stuck and don't know what to watch.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+  4. Social features
+     Users can search and add friends. The homepage "Friends recommendations" gets updated whenever you add a new friend based on their favourite movies.
+     Each user also have their own unique profile with information such as:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+     - Following count
+     - Bio
+     - Movie type watcher
+     - Favourites
+     - Pinboard with a movie list they have made.
+    
+  # Technologies
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+  This project is built with:
+  - Next.js
+  - Tailwind
+  - React
+  - Supabase
 
-## Learn More
+# Contact
 
-To learn more about Next.js, take a look at the following resources:
+For any questions please mail me: 481240@student.fontys.nl
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+    
+  
