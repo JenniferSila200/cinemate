@@ -1044,7 +1044,7 @@ function SearchScreen({ onClose, onFollowChanged }: { onClose: () => void; onFol
 
                       <div className="flex-1">
                         <div className="text-white font-semibold">{f.label}</div>
-                        <div className="text-white/80 text-sm font-normal">Friend</div>
+                        
                       </div>
 
                       <button

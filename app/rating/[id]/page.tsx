@@ -11,7 +11,7 @@ const dmMono = DM_Mono({
 })
 
 type MovieRow = {
-  id: string // keep as string for UI + routing; we convert to Number() when saving
+  id: string
   title: string
   year: number | null
   director: string | null
@@ -103,7 +103,6 @@ export default function RatingPage() {
       setLoadingMovie(true)
       setErrorMsg(null)
 
-      // movies.id is bigint, but eq() is fine with a numeric string
       const { data, error } = await supabase
         .from('movies')
         .select('id,title,year,director,poster_url')
@@ -152,24 +151,56 @@ export default function RatingPage() {
     try {
       const payload = {
         profile_id: MY_PROFILE_ID,
-        movie_id: movieIdNum, // ✅ bigint -> number
-        watched_on: watchedOn, // date
-        rating, // int 1-5
+        movie_id: movieIdNum,
+        watched_on: watchedOn,
+        rating,
       }
 
-      // ✅ save into movie_ratings (your new table)
-   const { error } = await supabase
-  .from('movie_ratings')
-  .upsert(payload, { onConflict: 'profile_id,movie_id' })
-
+      const { error } = await supabase
+        .from('movie_ratings')
+        .upsert(payload, { onConflict: 'profile_id,movie_id' })
 
       if (error) {
         setErrorMsg(formatSupabaseError(error))
         return
       }
 
-      // ✅ go to your films list
-      router.push('/list')
+      router.replace('/list')
+      router.refresh()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function onDelete() {
+    if (!movie) return
+
+    const movieIdNum = Number(movie.id)
+    if (!Number.isFinite(movieIdNum)) {
+      setErrorMsg('Invalid movie id.')
+      return
+    }
+
+    const ok = window.confirm('Remove this movie from your list?')
+    if (!ok) return
+
+    setSaving(true)
+    setErrorMsg(null)
+
+    try {
+      const { error } = await supabase
+        .from('movie_ratings')
+        .delete()
+        .eq('profile_id', MY_PROFILE_ID)
+        .eq('movie_id', movieIdNum)
+
+      if (error) {
+        setErrorMsg(formatSupabaseError(error))
+        return
+      }
+
+      router.replace('/list')
+      router.refresh()
     } finally {
       setSaving(false)
     }
@@ -205,9 +236,9 @@ export default function RatingPage() {
             borderTopRightRadius: '0.9375rem',
           }}
         >
-          {/* TOP BAR */}
+       
           <div className="px-6 h-20 flex items-center border-y border-white/20" style={{ backgroundColor: RED }}>
-            <button type="button" onClick={() => router.back()} className="text-white text-sm leading-none">
+            <button type="button" onClick={() => router.replace('/')} className="text-white text-sm leading-none">
               Cancel
             </button>
 
@@ -225,7 +256,7 @@ export default function RatingPage() {
             </button>
           </div>
 
-          {/* MOVIE STRIP */}
+          {/* Movie poster section */}
           <div className="px-6 py-6 border-b border-white/20 bg-gradient-to-b from-[#1b1b1b] to-[#141414]">
             {loadingMovie ? (
               <div className="text-white/70">Loading…</div>
@@ -261,7 +292,7 @@ export default function RatingPage() {
               </div>
             )}
 
-            {/* DATE ROW */}
+            {/* Date */}
             <div className="-mx-6 border-b border-white/20">
               <div className="px-6 py-5 flex items-center relative">
                 <div className="text-white text-base mb-4">Date</div>
@@ -285,7 +316,7 @@ export default function RatingPage() {
               </div>
             </div>
 
-            {/* RATE ROW */}
+            {/* Star rating */}
             <div className="-mx-6 border-b border-white/20">
               <div className="px-6 py-5">
                 <div className="text-white text-base mb-3 mt-4">Rate</div>
@@ -308,6 +339,33 @@ export default function RatingPage() {
               </div>
             </div>
 
+            {/* Delete button */}
+            <div className="px-6 pt-6 pb-2">
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={onDelete}
+                  disabled={saving || loadingMovie || !movie}
+                  className={[
+                    'bg-transparent',
+                    'text-white/90 hover:text-white',
+                    'inline-flex items-center gap-2',
+                    'text-sm tracking-widest',
+                    'disabled:opacity-40',
+                  ].join(' ')}
+                  aria-label="Remove from list"
+                  title="Remove from list"
+                >
+                  <span className="text-xl leading-none">🗑️</span>
+                  <span>REMOVE FROM LIST</span>
+                </button>
+              </div>
+
+              <div className="mt-2 text-center text-white/70 text-[11px]">
+                This will remove the movie from your list.
+              </div>
+            </div>
+
             <div className="h-10" />
           </div>
 
@@ -315,13 +373,25 @@ export default function RatingPage() {
           <div className="absolute bottom-0 left-0 right-0 z-30 bg-[#141414] border-t border-white/10">
             <div className="h-20 px-10 flex items-center justify-between">
               <button className="text-white/80 grid place-items-center" aria-label="Home" onClick={() => router.push('/')}>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-7 w-7"
+                >
                   <path d="M3 10.5L12 3l9 7.5" />
                   <path d="M5 9.5V21a1 1 0 0 0 1 1h12a 1 1 0 0 0 1-1V9.5" />
                 </svg>
               </button>
 
-              <button className="h-10 w-16 rounded-full bg-[#141414] border border-white text-white text-2xl grid place-items-center" aria-label="Add">
+              <button
+                className="h-10 w-16 rounded-full bg-[#141414] border border-white text-white text-2xl grid place-items-center"
+                aria-label="Add"
+              >
                 +
               </button>
 
@@ -330,7 +400,14 @@ export default function RatingPage() {
                 aria-label="Profile"
                 onClick={() => router.push(`/personal/${MY_PROFILE_ID}`)}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="h-7 w-7"
+                >
                   <path d="M20 21a8 8 0 0 0-16 0" />
                   <circle cx="12" cy="8" r="4" />
                 </svg>

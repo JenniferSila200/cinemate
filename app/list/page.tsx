@@ -74,7 +74,7 @@ export default function ListPage() {
         setErr(formatSupabaseError(error))
         setRows([])
       } else {
-        // ✅ map into the exact TS type (fixes red squiggles)
+       
         const mapped: RatedRow[] = (data ?? []).map((r: any) => ({
           movie_id: Number(r.movie_id),
           rating: Number(r.rating),

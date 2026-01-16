@@ -50,6 +50,7 @@ export default function ProfilePage() {
   const [favourites, setFavourites] = useState<Movie[]>([])
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+const MY_PROFILE_ID = '8c2d4b5a-1b6d-4c7a-9d26-5c4f73f2a9c1'
 
   useEffect(() => {
     if (!id) return
@@ -316,38 +317,19 @@ export default function ProfilePage() {
         {/* Bottom navbar */}
         <div className="absolute bottom-0 left-0 right-0 z-30 bg-[#141414] border-t border-white/10">
           <div className="h-20 px-10 flex items-center justify-between">
-            <button className="text-white/80 grid place-items-center" aria-label="Home" onClick={() => router.push('/')}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-7 w-7"
-              >
+             <button className="text-white/80 grid place-items-center" aria-label="Home" onClick={() => router.push('/')}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7">
                 <path d="M3 10.5L12 3l9 7.5" />
                 <path d="M5 9.5V21a1 1 0 0 0 1 1h12a 1 1 0 0 0 1-1V9.5" />
               </svg>
             </button>
 
-            <button
-              className="h-10 w-16 rounded-full bg-[#141414] border border-white text-white text-2xl grid place-items-center"
-              aria-label="Add"
-            >
+               <button className="h-10 w-16 rounded-full bg-[#141414] border border-white text-white text-2xl grid place-items-center" aria-label="Add" onClick={() => router.push('/rating')}>
               +
             </button>
 
-            <button className="text-white/80 grid place-items-center" aria-label="Profile">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="h-7 w-7"
-              >
+            <button className="text-white/80 grid place-items-center" aria-label="Profile" onClick={() => router.push(`/personal/${MY_PROFILE_ID}`)}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7">
                 <path d="M20 21a8 8 0 0 0-16 0" />
                 <circle cx="12" cy="8" r="4" />
               </svg>

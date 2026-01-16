@@ -150,13 +150,13 @@ export default function RatingSearchPage() {
             className="px-5 pt-4 pb-28 flex-1 min-h-0 overflow-y-auto bg-[#4b0f0f]"
             style={{ borderTopLeftRadius: '0.9375rem', borderTopRightRadius: '0.9375rem' }}
           >
-            {/* ✅ Title only */}
+           
             <div className="text-white text-xl tracking-widest">ADD A FILM</div>
             <div className="mt-4 h-px bg-white/40" />
 
             {errorMsg && <div className="mt-4 rounded-xl border border-white/20 bg-black/20 p-3 text-red-200 text-sm">{errorMsg}</div>}
 
-            {/* ✅ When empty, no popular section — just a hint */}
+          
             {isEmpty ? (
               <div className="mt-6 text-white/70 text-sm">Search for a film to add it.</div>
             ) : (
